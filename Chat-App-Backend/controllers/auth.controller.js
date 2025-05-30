@@ -34,11 +34,11 @@ export const login = async (req, res, next) => {
 		}
 		const user = await User.findOne({ email });
 		if (!user) {
-			return new ApiError(404, "User not found");
+			return res.status(404).json({ message: "User not found" });
 		}
 		const authenticated = await bcrypt.compare(password, user.password);
 		if (!authenticated) {
-			return new ApiError(401, "Password is incorrect");
+			return res.status(401).json({ message: "Password is incorrect" });
 		}
 		res.cookie("jwt", createToken(email, user._id), {
 			httpOnly: true,
@@ -56,6 +56,25 @@ export const login = async (req, res, next) => {
 				lastName: user.lastName,
 				color: user.color,
 			},
+		});
+	} catch (error) {
+		throw new ApiError(500, "Something went wrong during signup");
+	}
+};
+export const getUserInfo = async (req, res, next) => {
+	try {
+		const userData = await User.findById(req.userId).select("-password");
+		if (!userData) {
+			throw new ApiError(404, "User not found");
+		}
+		return res.status(200).json({
+			_id: userData._id,
+			email: userData.email,
+			profileSetup: userData.profileSetup,
+			image: userData.image,
+			firstName: userData.firstName,
+			lastName: userData.lastName,
+			color: userData.color,
 		});
 	} catch (error) {
 		throw new ApiError(500, "Something went wrong during signup");

@@ -8,51 +8,71 @@ import { Button } from "@/components/ui/button.jsx";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client.js"; // Assuming you have an apiClient setup for making API calls
 import { SIGNUP, LOGIN } from "@/utils/constants.js";
+import { useNavigate } from "react-router-dom"; // Assuming you're using react-router for navigation
+import { useAppStore } from "@/store/index.js";
 const Auth = () => {
+	const navigate = useNavigate();
 	const [email, setEmail] = React.useState("");
 	const [password, setPassword] = React.useState("");
 	const [confirmPassword, setConfirmPassword] = React.useState("");
+	const { setUserInfo } = useAppStore();
+
 	const validateSignUp = () => {
 		if (!email.length) {
-			toast.error("Email is required");
+			toast.error("Email is required", { closeButton: true });
 			return false;
 		}
 		if (!password.length) {
-			toast.error("Password is required");
+			toast.error("Password is required", { closeButton: true });
 			return false;
 		}
 		if (!confirmPassword.length) {
-			toast.error("Confirm Password is required");
+			toast.error("Confirm Password is required", { closeButton: true });
 			return false;
 		}
 		if (password !== confirmPassword) {
-			toast.error("Passwords do not match");
+			toast.error("Passwords do not match", { closeButton: true });
 			return false;
 		}
 		return true;
 	};
 	const validateLogin = () => {
 		if (!email.length) {
-			toast.error("Email is required");
+			toast.error("Email is required", { closeButton: true });
 			return false;
 		}
 		if (!password.length) {
-			toast.error("Password is required");
+			toast.error("Password is required", { closeButton: true });
 			return false;
 		}
 		return true;
 	};
 	const handleLogin = async () => {
 		if (validateLogin()) {
-			const response = await apiClient.post(
-				LOGIN,
-				{
-					email,
-					password,
-				},
-				{ withCredentials: true }
-			);
-			console.log("Login response:", response);
+			try {
+				const response = await apiClient.post(
+					LOGIN,
+					{
+						email,
+						password,
+					},
+					{ withCredentials: true }
+				);
+				console.log("Login response:", response);
+				console.log("Login response data:", response.data);
+				if (response.data.user && response.data.user._id) {
+					setUserInfo(response.data.user);
+					if (response.data.user.profileSetup) navigate("/chat");
+					else navigate("/profile");
+					toast.success("Login successful!", { closeButton: true });
+				} else {
+					toast.error("Login failed: Invalid credentials or unexpected response.", { closeButton: true });
+				}
+			} catch (error) {
+				console.log("Login error:", error);
+				console.log("Login error response:", error.response);
+				toast.error(error.response?.data?.message || "Login failed: Invalid credentials.", { closeButton: true });
+			}
 		}
 	};
 	const handleSignUp = async () => {
@@ -65,7 +85,11 @@ const Auth = () => {
 				},
 				{ withCredentials: true }
 			);
-			console.log("Signup response:", response);
+			if (response.status === 201) {
+				setUserInfo(response.data.user);
+				navigate("/profile");
+				toast.success("Sign up successful!", { closeButton: true });
+			}
 		}
 	};
 
