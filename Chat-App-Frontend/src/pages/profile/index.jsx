@@ -1,84 +1,205 @@
 import { useAppStore } from "@/store/index.js";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { IoArrowBack } from "react-icons/io5"; // Assuming you're using react-icons for icons
+import { IoArrowBack } from "react-icons/io5";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { FaPlus, FaTrash } from "react-icons/fa";
-import { getColor,colors } from "@/lib/utils.js"; // Assuming you have a utility function to get color based on user info
+import { getColor, colors } from "@/lib/utils.js";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { apiClient } from "@/lib/api-client";
+import { UPDATE_USER_INFO, HOST, PROFILE_IMAGE_ROUTE, REMOVE_PROFILE_IMAGE } from "@/utils/constants";
+
 const Profile = () => {
 	const navigate = useNavigate();
-	const { userInfo, setUserInfor } = useAppStore();
+	const { userInfo, setUserInfo } = useAppStore();
 	const [firstName, setFirstName] = useState(userInfo?.firstName || "");
 	const [lastName, setLastName] = useState(userInfo?.lastName || "");
 	const [image, setImage] = useState(userInfo?.image || null);
 	const [hovered, setHovered] = useState(false);
-	const [color, setColor] = useState(userInfo?.color || "#000000");
-	// console.log("User Info:", userInfo);
-	const saveChanges = async () => {};
+	const [color, setColor] = useState(userInfo?.color || 0);
+	const fileInputRef = useRef(null);
+
+	useEffect(() => {
+		if (userInfo.profileSetup) {
+			setFirstName(userInfo.firstName || "");
+			setLastName(userInfo.lastName || "");
+			setColor(userInfo.color || 0);
+		}
+		if (userInfo.image) {
+			setImage(`${HOST}/${userInfo.image}`);
+		}
+	}, [userInfo]);
+
+	const validateProfile = () => {
+		if (!firstName || !lastName) {
+			toast.error("First Name and Last Name are required.");
+			return false;
+		}
+		return true;
+	};
+
+	const saveChanges = async () => {
+		if (validateProfile()) {
+			try {
+				const response = await apiClient.post(
+					UPDATE_USER_INFO,
+					{ firstName, lastName, color },
+					{ withCredentials: true }
+				);
+				if (response.status === 200 && response.data) {
+					toast.success("Profile updated successfully.");
+					setUserInfo({ ...response.data });
+					navigate("/chat");
+				}
+			} catch (error) {
+				console.error("Error saving profile:", error);
+			}
+		}
+	};
+
+	const handleNavigate = () => {
+		if (userInfo.profileSetup) {
+			navigate("/chat");
+		} else {
+			toast.error("Please complete your profile setup first.");
+		}
+	};
+
+	const handleFileInput = () => {
+		fileInputRef.current.click();
+	};
+
+	const handleFileChange = async (event) => {
+		const file = event.target.files[0];
+		if (file) {
+			const formData = new FormData();
+			formData.append("profile-image", file);
+			const response = await apiClient.post(PROFILE_IMAGE_ROUTE, formData, { withCredentials: true });
+			if (response.status === 200 && response.data.image) {
+				setUserInfo({ ...userInfo, image: response.data.image });
+				toast.success("Profile image updated successfully.");
+			}
+			const reader = new FileReader();
+			reader.onloadend = () => {
+				setImage(reader.result);
+			};
+			reader.readAsDataURL(file);
+		}
+	};
+
+	const handleDeleteFile = async () => {
+		try {
+			const response = await apiClient.delete(REMOVE_PROFILE_IMAGE, { withCredentials: true });
+			if (response.status === 200) {
+				setUserInfo({ ...userInfo, image: null });
+				setImage(null);
+				toast.success("Profile image deleted successfully.");
+			}
+		} catch (error) {
+			console.error("Error deleting profile image:", error);
+		}
+	};
+
+	const selectedColorClass = `${getColor(color)} bg-opacity-20`;
 
 	return (
-		<div className="bg-[#1b1c24] h-[100vh] flex flex-col items-center justify-center gap-10 ">
-			<div className="flex flex-col gap-10 w-[80vw] md:w-max">
-				<div>
-					<IoArrowBack className="text-4xl lg:text-6xl text-white/90 cursor-pointer" />
+		<div
+			className={`min-h-screen flex items-center justify-center py-12 px-4 transition-all duration-300 bg-[#121212] ${selectedColorClass}`}
+		>
+			<div className="w-full max-w-4xl bg-[#1e1e2e] rounded-2xl shadow-lg p-8 space-y-10">
+				<div className="flex items-center gap-4 cursor-pointer" onClick={handleNavigate}>
+					<IoArrowBack className="text-3xl text-white/90 hover:text-white transition" />
+					<span className="text-white text-lg font-medium">Back to Chat</span>
 				</div>
-				<div className="grid grid-cols-2">
+				<div className="grid md:grid-cols-2 gap-8">
 					<div
-						className="h-full w-32 md:w-48 md:h-48 relative flex items-center justify-center"
+						className="relative flex items-center justify-center"
 						onMouseEnter={() => setHovered(true)}
 						onMouseLeave={() => setHovered(false)}
 					>
-						<Avatar className="h-32 w-32 md:w-48 md:h-48 rounded-full overflow-hidden">
+						<Avatar className="h-40 w-40 md:h-56 md:w-56 border-4 border-white shadow-xl">
 							{image ? (
 								<AvatarImage
 									src={image}
-									alt="prodfile"
-									className="object-cover w-full h-full bg-black"
+									alt="profile"
+									className="object-cover w-full h-full rounded-full"
 								/>
 							) : (
 								<div
-									className={`uppercase h-32 w-32 md:h-48 md:w-48 text-5xl border-1px flex items-center justify-center rounded-full ${getColor(
+									className={`uppercase text-6xl w-full h-full flex items-center justify-center rounded-full ${getColor(
 										color
 									)}`}
 								>
-									{" "}
-									{firstName
-										? firstName.splut("").shift()
-										: userInfo.email.split("").shift()}
+									{firstName ? firstName.charAt(0) : userInfo.email.charAt(0)}
 								</div>
 							)}
 						</Avatar>
 						{hovered && (
-							<div className="absolute inset-0 flex items-center justify-center bg-black/50 ring-fuchsia-50 rounded-full">
-								{image ? (
-									<FaTrash className="text-white text-3xl cursor-pointer" />
-								) : (
-									<FaPlus className="text-white text-3xl cursor-pointer" />
-								)}
+							<div
+								onClick={image ? handleDeleteFile : handleFileInput}
+								className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-full shadow-inner transition"
+							>
+								<div className="bg-white/20 backdrop-blur-md p-3 rounded-full shadow-lg">
+									{image ? (
+										<FaTrash className="text-white text-2xl" />
+									) : (
+										<FaPlus className="text-white text-2xl" />
+									)}
+								</div>
 							</div>
 						)}
-						{/* <input type="text"/> */}
+						<input
+							type="file"
+							ref={fileInputRef}
+							className="hidden"
+							onChange={handleFileChange}
+							accept=".png, .jpg, .svg, .jpeg, .webp"
+						/>
 					</div>
-					<div className="flex min-w-32 md:min-w-64 flex-col gap-5 text-white items-center justify-center ">
-						<div className="w-full">
-              <Input placeholder="Email" type="email" disabled value={ userInfo.email} className="rounded-lg p-g bg-[2c2e3b] border-none" />
-            </div>
-            <div className="w-full">
-              <Input placeholder="First Name" type="text" onChange={e=>setFirstName(e.target.value)}  value={ firstName} className="rounded-lg p-g bg-[2c2e3b] border-none" />
-            </div>
-            <div className="w-full">
-              <Input placeholder="Last Name" type="text" onChange={e=>setLastName(e.target.value)} value={lastName} className="rounded-lg p-g bg-[2c2e3b] border-none" />
-            </div>
-            <div className="w-full flex gap-5 ">
-              {
-                colors.map((color, index) => <div className={`${color} h-8 w-8 rounded-full cursor-pointer transition-all duration-300 ${color===index ? " outline outline-white outline-4":""}`} key={index}></div>)
-              }
-            </div>
+					<div className="space-y-4 text-white">
+						<Input
+							placeholder="Email"
+							type="email"
+							disabled
+							value={userInfo.email}
+							className="bg-[#3a3d4d] border-none placeholder:text-white/60"
+						/>
+						<Input
+							placeholder="First Name"
+							type="text"
+							onChange={(e) => setFirstName(e.target.value)}
+							value={firstName}
+							className="bg-[#3a3d4d] border-none placeholder:text-white/60"
+						/>
+						<Input
+							placeholder="Last Name"
+							type="text"
+							onChange={(e) => setLastName(e.target.value)}
+							value={lastName}
+							className="bg-[#3a3d4d] border-none placeholder:text-white/60"
+						/>
+						<div className="flex gap-3 items-center">
+							{colors.map((clr, index) => (
+								<div
+									key={index}
+									className={`${clr} h-8 w-8 rounded-full border-2 border-white cursor-pointer hover:scale-110 transition`}
+									onClick={() => setColor(index)}
+								></div>
+							))}
+						</div>
 					</div>
 				</div>
+				<Button
+					onClick={saveChanges}
+					className="w-full h-14 bg-purple-700 hover:bg-purple-900 transition text-white text-lg rounded-xl shadow-md"
+				>
+					Save Changes
+				</Button>
 			</div>
 		</div>
 	);
 };
+
 export default Profile;

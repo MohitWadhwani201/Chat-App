@@ -17,6 +17,7 @@ app.use(
 		credentials: true, // Allow cookies to be sent
 	})
 );
+app.use("/uploads/profiles", express.static("uploads/profiles"));
 const server = app.listen(PORT, () => {
 	console.log(`Server is running on port ${PORT}`);
 });
