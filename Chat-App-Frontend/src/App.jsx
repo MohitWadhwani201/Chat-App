@@ -7,49 +7,46 @@ import Profile from "./pages/profile/index.jsx";
 import { useAppStore } from "./store/index.js";
 import { GET_USER_INFO } from "./utils/constants.js";
 import { apiClient } from "./lib/api-client.js"; // Assuming you have an apiClient setup for making API calls
-
+import { toast } from "sonner"; // Assuming you're using sonner for notifications
 const PrivateRoute = ({ children }) => {
 	const { userInfo } = useAppStore();
 	const isAuthenticated = !!userInfo;
+	// toast.error("Please Login to first", { closeButton: true });
 	return isAuthenticated ? children : <Navigate to="/auth" />;
 };
 const AuthRoute = ({ children }) => {
 	const { userInfo } = useAppStore();
-	const isAuthenticated = !!userInfo;
+	const isAuthenticated = !userInfo;
+
 	return isAuthenticated ? children : <Navigate to="/chat" />;
 };
 const App = () => {
 	const { userInfo, setUserInfo } = useAppStore();
 	const [loading, setLoading] = React.useState(true);
+	// console.log("User Info:", userInfo);
 	useEffect(() => {
-		<PrivateRoute>
-			<Chat />
-		</PrivateRoute>;
 		const getUserData = async () => {
 			try {
 				const response = await apiClient.get(GET_USER_INFO, {
 					withCredentials: true,
 				});
-				// console.log("User data response:", response);
-				if(response.status === 200 && response.data._id) {
+				// console.log("User Data Response:", response);
+				if (response.status === 200 && response.data._id) {
 					setUserInfo(response.data);
-				}
-				else {
+				} else {
 					setUserInfo(undefined);
 				}
 			} catch (error) {
 				setUserInfo(undefined);
-			}
-			finally {
+				// console.error("Error fetching user data:", error);
+			} finally {
 				setLoading(false);
 			}
 		};
-		if (!userInfo) {
-			getUserData();
-		} else {
-			setLoading(false);
-		}
-	}, [userInfo, setUserInfo]);
+		getUserData();
+		// Only run on mount!
+	}, []);
+
 	if (loading) {
 		return <div>Loading...</div>;
 		// console.log(response);

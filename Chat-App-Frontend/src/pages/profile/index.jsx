@@ -22,14 +22,15 @@ const Profile = () => {
 	const fileInputRef = useRef(null);
 
 	useEffect(() => {
-		if (userInfo.profileSetup) {
+		if (userInfo && userInfo.profileSetup) {
 			setFirstName(userInfo.firstName || "");
 			setLastName(userInfo.lastName || "");
-			setColor(userInfo.color || 0);
+			setColor(userInfo.color ?? 0);
 		}
-		if (userInfo.image) {
+		if (userInfo && userInfo.image) {
 			setImage(`${HOST}/${userInfo.image}`);
 		}
+		// Only run when userInfo changes reference, not on every field change
 	}, [userInfo]);
 
 	const validateProfile = () => {
@@ -102,7 +103,7 @@ const Profile = () => {
 		}
 	};
 
-	const selectedColorClass = `${getColor(color)} bg-opacity-20`;
+	const selectedColorClass = `${getColor(color)} bg-opacity-80`;
 
 	return (
 		<div
@@ -139,7 +140,7 @@ const Profile = () => {
 						{hovered && (
 							<div
 								onClick={image ? handleDeleteFile : handleFileInput}
-								className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-full shadow-inner transition"
+								className="absolute inset-y-0 inset-x-20 bg-black/60 flex items-center justify-center rounded-full shadow-inner transition"
 							>
 								<div className="bg-white/20 backdrop-blur-md p-3 rounded-full shadow-lg">
 									{image ? (
