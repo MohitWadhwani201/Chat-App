@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import { ApiError } from "../utils/ApiErrors.js";
 export const verifyToken = (req, res, next) => {
 	const token = req.cookies.jwt;
-	// console.log("Token:", token);
+	// console.log("Token:", req.cookies);
 	if (!token) {
 		throw new ApiError(401, "Unauthorized: No token provided");
 	}

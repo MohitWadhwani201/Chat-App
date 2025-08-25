@@ -15,7 +15,7 @@ export const signup = async (req, res, next) => {
 			throw new ApiError(400, "Email and password are required");
 		}
 		const user = await User.create({ email, password });
-		console.log("User created:", user);
+		// console.log("User created:", user);
 		res.cookie("jwt", createToken(email, user._id), {
 			httpOnly: true,
 			maxAge,
@@ -37,7 +37,9 @@ export const login = async (req, res, next) => {
 		if (!user) {
 			return res.status(404).json({ message: "User not found" });
 		}
+		// console.log(user.password, "user password");
 		const authenticated = await bcrypt.compare(password, user.password);
+		// console.log(authenticated, "authenticated");
 		if (!authenticated) {
 			return res.status(401).json({ message: "Password is incorrect" });
 		}
@@ -51,12 +53,13 @@ export const login = async (req, res, next) => {
 			user: {
 				_id: user._id,
 				email: user.email,
-				profileSet: user.profileSet,
+				profileSetup: user.profileSetup,
 				image: user.image,
 				firstName: user.firstName,
 				lastName: user.lastName,
 				color: user.color,
 			},
+			
 		});
 	} catch (error) {
 		throw new ApiError(500, "Something went wrong during signup");
@@ -84,12 +87,12 @@ export const getUserInfo = async (req, res, next) => {
 export const updateProfile = async (req, res, next) => {
 	try {
 		const userId = req.userId;
-		console.log("updateProfile userId:", userId);
+		// console.log("updateProfile userId:", userId);
 		if (!userId) {
 			return res.status(401).json({ message: "Unauthorized: userId missing from request." });
 		}
 		const { firstName, lastName, color } = req.body;
-		if (!firstName || !lastName || !color) {
+		if (!firstName || !lastName || color === undefined || color === null) {
 			throw new ApiError(400, "All fields are required");
 		}
 		const userData = await User.findByIdAndUpdate(
@@ -141,7 +144,7 @@ export const removerProfileImage = async (req, res, next) => {
 			try {
 				unlinkSync(user.image); // Remove the image file from the server
 			} catch (err) {
-				console.error("Error deleting image file:", err);
+				throw new ApiError(500, "Failed to remove image file from server");
 			}
 		}
 		user.image = null; // Clear the image field in the database
@@ -149,5 +152,20 @@ export const removerProfileImage = async (req, res, next) => {
 		return res.status(200).json({ message: "Profile image removed successfully" });
 	} catch (error) {
 		throw new ApiError(500, "Something went wrong during Update");
+	}
+};
+export const logout = async (req, res, next) => {
+	try {
+		// Set the cookie to expire in the past to ensure removal
+		res.cookie("jwt", "", {
+			httpOnly: true,
+			secure: true,
+			sameSite: "None",
+			expires: new Date(0), // Expire immediately
+			path: "/", // Ensure path matches where it was set
+		});
+		return res.status(200).json({ message: "User logged out successfully" });
+	} catch (error) {
+		throw new ApiError(500, "Something went wrong during logout");
 	}
 };

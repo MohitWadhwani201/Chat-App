@@ -4,6 +4,9 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import mongoose from "mongoose";
 import authRoutes from "./routes/auth.routes.js";
+import contactRouter from "./routes/contact.routes.js";
+import setupSocket  from "./socket.js";
+import messageRoutes from "./routes/messages.routes.js";
 dotenv.config();
 
 const app = express();
@@ -21,9 +24,22 @@ app.use("/uploads/profiles", express.static("uploads/profiles"));
 const server = app.listen(PORT, () => {
 	console.log(`Server is running on port ${PORT}`);
 });
+setupSocket(server);
 app.use(cookieParser());
 app.use(express.json());
 app.use("/api/auth", authRoutes);
+app.use("/api/contacts", contactRouter);
+app.use("/api/messages",messageRoutes )
+// Global error handler
+app.use((err, req, res, next) => {
+	// console.error("global error ", err);
+	res.status(err.statusCode || 500).json({
+		success: false,
+		message: err.message || "Internal Server Error",
+		error: process.env.NODE_ENV === "development" ? err : undefined,
+	});
+});
+
 mongoose.connect(DATABASE_URL)
 	.then(() => {
 		console.log("Connected to MongoDB");

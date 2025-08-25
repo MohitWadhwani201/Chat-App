@@ -58,8 +58,8 @@ const Auth = () => {
 					},
 					{ withCredentials: true }
 				);
-				console.log("Login response:", response);
-				console.log("Login response data:", response.data);
+				// console.log("Login response:", response);
+				// console.log("Login response data:", response.data);
 				if (response.data.user && response.data.user._id) {
 					setUserInfo(response.data.user);
 					if (response.data.user.profileSetup) navigate("/chat");
@@ -69,8 +69,8 @@ const Auth = () => {
 					toast.error("Login failed: Invalid credentials or unexpected response.", { closeButton: true });
 				}
 			} catch (error) {
-				console.log("Login error:", error);
-				console.log("Login error response:", error.response);
+				// console.log("Login error:", error);
+				// console.log("Login error response:", error.response);
 				toast.error(error.response?.data?.message || "Login failed: Invalid credentials.", { closeButton: true });
 			}
 		}

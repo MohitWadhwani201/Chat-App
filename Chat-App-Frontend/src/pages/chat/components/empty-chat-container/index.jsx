@@ -1,5 +1,5 @@
 import Lottie from "lottie-react";
-import animationData from "@/assets/lottie-json.json";
+import animationData from "../../../../assets/lottie-json.json"; // Adjust the path as necessary
 
 const EmptyChatConatainer = () => {
 	return (
